@@ -12,24 +12,24 @@ main =
 -- MODEL
 
 type XORY = X | Y
-type Turn = XTurn | YTurn
+type Turn = XPlayer | YPlayer
 
 type alias TD = List (List XORY)
 
 car : TD
-car = [[X,X] , [Y,Y]]
+car = []
 
 type alias Model =
-  {currentTurn : Turn
-  , list: TD
+  {list: TD
   , over: Bool
+  , turn: Turn
   }
 
 model : Model
 model =
-  {currentTurn = XTurn
-  , list = car --[[Y,X] , [X, Y]]
+  {list = car --[[Y,X] , [X, Y]]
   , over = False
+  , turn = XPlayer
   }
 
 
@@ -76,7 +76,7 @@ last mList = List.foldl (\y x -> x) [] mList
 -- isWon model =
 --   {model | over = first2Equal model.list}
 
-type Msg = Increment | Decrement | Reset
+type Msg = AppendY | AppendX | AppendYRow2 | AppendXRow2 | Reset
 
 appendY : (List XORY) -> (List XORY)
 appendY li = List.append li [Y]
@@ -96,28 +96,65 @@ tailTD td =  (List.drop 1 td)
 
 update : Msg -> Model -> Model
 update msg model =
-  case msg of
-    Increment ->
-      let newHead = model.list
-                    |> headTD
-                    |> appendY
-          li = newHead :: [(tailTD model.list)] --List.append model.list [Y]
-          ov = last3ElementsEqual newHead
-      in
-      { model | list = li, over = ov}
+  if model.over == False then
+    case msg of
+      AppendY ->
+        case model.turn of
+          YPlayer ->
+            let newHead = model.list
+                          |> headTD
+                          |> appendY
+                li = newHead :: [(tailTD model.list)] --List.append model.list [Y]
+                ov = last3ElementsEqual newHead
+            in
+            { model | list = li, over = ov, turn = XPlayer}
+          XPlayer ->
+            model
 
-    Decrement ->
-      let newHead = model.list
-                    |> headTD
-                    |> appendX
-          li = newHead :: [(tailTD model.list)]  --List.append model.list [X]
-          ov = last3ElementsEqual newHead
-      in
-      { model | list = li, over = ov}
+      AppendX ->
+        case model.turn of
+          XPlayer ->
+            let newHead = model.list
+                          |> headTD
+                          |> appendX
+                li = newHead :: [(tailTD model.list)]  --List.append model.list [X]
+                ov = last3ElementsEqual newHead
+            in
+            { model | list = li, over = ov, turn = YPlayer}
+          YPlayer ->
+            model
 
-    Reset ->
+      AppendYRow2 ->
+        case model.turn of
+        YPlayer ->
+          let newTail = model.list
+                        |> tailTD
+                        |> appendY
+              li = (headTD model.list) :: [newTail] --model.list  --List.append model.list [X]
+              ov = last3ElementsEqual newTail
+          in
+          { model | list = li, over = ov, turn = XPlayer}
+        XPlayer ->
+          model
+      AppendXRow2 ->
+        case model.turn of
+        XPlayer ->
+          let newTail = model.list
+                        |> tailTD
+                        |> appendX
+              li = (headTD model.list) :: [newTail] --model.list  --List.append model.list [X]
+              ov = last3ElementsEqual newTail
+        in
+        { model | list = li, over = ov, turn = YPlayer}
+        YPlayer ->
+          model
+      Reset ->
+        { model | list = [], over = False }
+  else
+    if msg == Reset then
       { model | list = [], over = False }
-
+    else
+      model
 
 -- VIEW
 
@@ -150,13 +187,15 @@ last3ElementsEqual li =
 view : Model -> Html Msg
 view model =
   div []
-  [ div [] [text (toString ( [X, Y] :: [(tailTD model.list)]))]
-  , button [ onClick Decrement ] [ text "Append X" ]
+  [ button [ onClick AppendX ] [ text "Append X" ]
   , div [] [ text (toString model) ]
-  , button [ onClick Increment ] [ text "Append Y" ]
+  , button [ onClick AppendY ] [ text "Append Y" ]
+  , button [ onClick AppendYRow2 ] [ text "Append Y row 2" ]
+  , button [ onClick AppendXRow2 ] [ text "Append X row 2" ]
   , button [ onClick Reset ] [ text "Reset" ]
   ]
 
+-- div [] [text (toString ( [X, Y] :: [(tailTD model.list)]))] debugging stuff
 
   -- div [id "contenido-principal"]
   --   [
